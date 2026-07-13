@@ -236,11 +236,11 @@
   <div id="bubbleLayer" class="bubbleLayer"></div>
 
   <div class="topbar">
-    <div class="brand">Peter Prime</div>
+    <a class="brand" href="index.html" style="color:inherit;text-decoration:none;">Peter Prime</a>
     <div class="nav">
-      <div class="pill">Work</div>
-      <div class="pill">About</div>
-      <div class="pill">Contact</div>
+      <a class="pill" href="work.html" style="color:inherit;text-decoration:none;">Work</a>
+      <a class="pill" href="about.html" style="color:inherit;text-decoration:none;">About</a>
+      <a class="pill" href="contact.html" style="color:inherit;text-decoration:none;">Contact</a>
     </div>
   </div>
 
@@ -310,7 +310,7 @@
       {
         "id": "design",
         "label": "Design",
-        "href": "#design",
+        "href": "work.html",
         "x": 0.49321266968325794,
         "y": 0.47724867724867726,
         "r": 0.20800000000000007,
@@ -326,7 +326,7 @@
       {
         "id": "architecture",
         "label": "Architecture",
-        "href": "#architecture",
+        "href": "work.html#architecture",
         "x": 0.3180995475113122,
         "y": 0.2761904761904762,
         "r": 0.1439999999999999,
@@ -343,7 +343,7 @@
       {
         "id": "ai",
         "label": "AI",
-        "href": "#ai",
+        "href": "about.html#ai",
         "x": 0.7149321266968326,
         "y": 0.2761904761904762,
         "r": 0.14800000000000005,
@@ -358,7 +358,7 @@
       {
         "id": "web",
         "label": "Web Design",
-        "href": "#web",
+        "href": "work.html#web",
         "x": 0.8144796380090498,
         "y": 0.6365079365079365,
         "r": 0.14599999999999994,
@@ -374,7 +374,7 @@
       {
         "id": "code",
         "label": "Coding",
-        "href": "#coding",
+        "href": "work.html#coding",
         "x": 0.532579185520362,
         "y": 0.8624338624338624,
         "r": 0.10600000000000004,
@@ -389,7 +389,7 @@
       {
         "id": "photo",
         "label": "Photography",
-        "href": "#photo",
+        "href": "work.html#photography",
         "x": 0.2330316742081448,
         "y": 0.6931216931216931,
         "r": 0.10600000000000004,
@@ -406,6 +406,9 @@
     // later: collision avoidance needed (not in Phase 1)
     const SUB_GAP = 0.018;
     const SUB_RING = 1.35;
+
+    // Layout Controls is a dev tool, not for visitors. Hidden unless ?edit=1.
+    const DEV_MODE = new URLSearchParams(location.search).get("edit") === "1";
 
     // =========================
     // DOM refs
@@ -841,6 +844,16 @@
     // =========================
     function onClick(e, key){
       e.stopPropagation();
+
+      // Deployed (non-edit) mode: a click just navigates, it doesn't select/expand.
+      if (!DEV_MODE && key.startsWith("m:")){
+        const m = getMain(key.slice(2));
+        if (m && m.href && m.href !== "#"){
+          window.location.href = m.href;
+          return;
+        }
+      }
+
       setSelected(key);
 
       if (key.startsWith("m:")){
@@ -1227,6 +1240,10 @@
     // Init
     // =========================
     function init(){
+      if (!DEV_MODE){
+        panel.style.display = "none";
+        editModeEl.checked = false; // visitors shouldn't be able to drag bubbles
+      }
       loadPanelPos();
       resizeCanvas();
       document.body.classList.toggle("mbOn", mbOnEl.checked);

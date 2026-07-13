@@ -1,0 +1,82 @@
+/* Shared look for the non-index pages. Matches index.html's palette/topbar exactly. */
+:root{
+  --bg1: #f4f5f8;
+  --bg2: #e9ebf1;
+  --txtDark: rgba(0,0,0,.82);
+  --panelBd: rgba(0,0,0,.10);
+  --line: rgba(0,0,0,.14);
+}
+
+html, body{ margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial; }
+body{
+  color: var(--txtDark);
+  background:
+    radial-gradient(1200px 900px at 70% 20%, rgba(0,0,0,.06), transparent 58%),
+    radial-gradient(900px 700px at 20% 70%, rgba(0,0,0,.05), transparent 58%),
+    linear-gradient(180deg, var(--bg1), var(--bg2));
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+a, a:link, a:visited{ color: inherit; text-decoration: underline; text-decoration-color: rgba(0,0,0,.28); text-underline-offset: 2px; }
+a:hover{ text-decoration-color: rgba(0,0,0,.6); }
+
+.topbar{
+  position: sticky; top: 18px;
+  margin: 18px 24px 0;
+  height: 54px; border-radius: 999px;
+  background: rgba(255,255,255,.45);
+  border: 1px solid rgba(0,0,0,.12);
+  backdrop-filter: blur(12px);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 18px;
+  box-sizing: border-box;
+  z-index: 5;
+}
+.brand{ font-weight: 650; letter-spacing: .2px; }
+.nav{ display: flex; gap: 12px; color: rgba(0,0,0,.64); font-size: 13px; }
+.pill{ padding: 6px 10px; border-radius: 999px; border: 1px solid rgba(0,0,0,.14); background: rgba(255,255,255,.35); }
+a.brand, a.pill{ color: inherit; text-decoration: none; }
+.pill:hover, .brand:hover{ background: rgba(255,255,255,.6); }
+.pill.active{ border-color: rgba(0,0,0,.32); }
+
+main{
+  max-width: 980px;
+  margin: 48px auto 96px;
+  padding: 0 24px;
+  box-sizing: border-box;
+}
+
+h1{ font-size: 34px; font-weight: 650; letter-spacing: -.2px; margin: 0 0 8px; }
+h2{ font-size: 22px; font-weight: 650; letter-spacing: -.1px; margin: 56px 0 4px; }
+h2:first-of-type{ margin-top: 32px; }
+h3{ font-size: 17px; font-weight: 650; letter-spacing: -.05px; margin: 32px 0 4px; }
+.dek{ font-size: 15px; color: rgba(0,0,0,.58); margin: 0 0 40px; max-width: 640px; line-height: 1.5; }
+p{ line-height: 1.6; }
+
+.section-note{ font-size: 14px; color: rgba(0,0,0,.58); line-height: 1.55; max-width: 640px; margin: 0 0 20px; }
+
+.gallery{ display: flex; flex-direction: column; gap: 28px; margin: 20px 0 40px; }
+figure{ margin: 0; }
+figure img{
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  border-radius: 10px;
+  border: 1px solid var(--panelBd);
+  box-shadow: 0 12px 40px rgba(0,0,0,.08);
+}
+figure.callout img{ border-color: rgba(0,0,0,.28); box-shadow: 0 12px 50px rgba(0,0,0,.16); }
+figcaption{ font-size: 13px; color: rgba(0,0,0,.58); margin-top: 8px; }
+figcaption strong{ color: var(--txtDark); }
+
+.divider{ height: 1px; background: rgba(0,0,0,.10); margin: 56px 0; }
+
+footer{ max-width: 980px; margin: 0 auto 48px; padding: 0 24px; font-size: 13px; color: rgba(0,0,0,.45); box-sizing: border-box; }
+
+@media (max-width: 640px){
+  main{ margin-top: 32px; }
+  h1{ font-size: 28px; }
+  h2{ margin-top: 40px; }
+}

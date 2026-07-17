@@ -74,6 +74,28 @@ figure.callout img{ border-color: rgba(0,0,0,.28); box-shadow: 0 12px 50px rgba(
 figcaption{ font-size: 13px; color: rgba(0,0,0,.58); margin-top: 8px; }
 figcaption strong{ color: var(--txtDark); }
 
+/* Two-column grid variant for photo sets */
+.gallery.grid{
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+/* Placeholder slot for images not uploaded yet */
+.ph{
+  aspect-ratio: 4 / 3;
+  border: 1px dashed rgba(0,0,0,.25);
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  color: rgba(0,0,0,.4);
+  background: rgba(0,0,0,.02);
+  text-align: center;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
 .divider{ height: 1px; background: rgba(0,0,0,.10); margin: 56px 0; }
 
 footer{ max-width: 980px; margin: 0 auto 48px; padding: 0 24px; font-size: 13px; color: rgba(0,0,0,.45); box-sizing: border-box; }

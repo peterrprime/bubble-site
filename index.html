@@ -1202,12 +1202,12 @@
       mbCanvas.height = Math.floor(window.innerHeight * devicePixelRatio);
     }
 
-    function getClusterBalls(mainId){
+    function getClusterBalls(mainId, dx = 0, dy = 0){
       const m = getMain(mainId);
       if (!m || !m.enabled) return [];
 
       const md = minDim();
-      const balls = [{ x: toPxX(m.x, m.y), y: toPxY(m.x, m.y), r: m.r * md }];
+      const balls = [{ x: toPxX(m.x + dx, m.y + dy), y: toPxY(m.x + dx, m.y + dy), r: m.r * md }];
 
       const includeSubs = (expandedMainId === mainId) && m.subsEnabled;
       if (includeSubs && m.children?.length){
@@ -1215,7 +1215,7 @@
         for (const c of m.children){
           if (c.enabled === false) continue;
           const st = subState[mainId][c.id];
-          const sx0 = st.x ?? m.x, sy0 = st.y ?? m.y;
+          const sx0 = (st.x ?? m.x) + dx, sy0 = (st.y ?? m.y) + dy;
           balls.push({
             x: toPxX(sx0, sy0),
             y: toPxY(sx0, sy0),
@@ -1227,9 +1227,20 @@
     }
 
     const MAX_BALLS = 40;
-    const VISUAL_SCALE = 0.82; // spheres render smaller than their hit circles so thin necks form instead of fat overlaps
-    const SMIN_K = 0.045;      // ponytail: neck-thickness knob (1/css-px); raise for tighter necks
+    const VISUAL_SCALE = 0.92; // spheres render slightly smaller than their hit circles; big enough that neighbors neck into each other
+    const SMIN_K = 0.035;      // ponytail: neck-thickness knob (1/css-px); raise for tighter necks
     const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    // Ambient idle drift: clusters wander slowly even when the mouse is still.
+    // Two incommensurate sines per axis so the path never visibly repeats.
+    const DRIFT_A = 0.011; // normalized amplitude
+    function driftXY(i, t){
+      if (REDUCED) return [0, 0];
+      return [
+        DRIFT_A * (Math.sin(t * 0.21 + i * 2.1) + 0.5 * Math.sin(t * 0.13 + i * 4.7)),
+        DRIFT_A * (Math.cos(t * 0.17 + i * 3.3) + 0.5 * Math.cos(t * 0.11 + i * 1.9))
+      ];
+    }
 
     const gl = mbCanvas.getContext("webgl2", { alpha: true, premultipliedAlpha: true, antialias: false });
 
@@ -1363,17 +1374,32 @@
       };
 
       if (expandedMainId !== lastExpanded){ lastExpanded = expandedMainId; expandT = t; }
-      const bloom = REDUCED ? 1 : Math.min(1, (t - expandT) / 0.3);
+      const bloom = REDUCED ? 1 : Math.min(1, (t - expandT) / 0.55);
       const ease = 1 - Math.pow(1 - bloom, 3);
 
       let i = 0;
       for (const b of bubbles){
         if (!b.enabled) continue;
         const breathe = REDUCED ? 1 : 1 + 0.012 * Math.sin(t * 0.7 + i * 1.7);
-        const cluster = getClusterBalls(b.id);
+        const [ddx, ddy] = driftXY(i, t);
+        const cluster = getClusterBalls(b.id, ddx, ddy);
         for (let j = 0; j < cluster.length; j++){
           const grow = (j > 0 && b.id === expandedMainId) ? ease : 1; // subs bloom in
           push(cluster[j].x, cluster[j].y, cluster[j].r * VISUAL_SCALE * breathe * grow);
+        }
+
+        // Split satellite: a droplet detaches, floats out, and re-merges.
+        // At out=0 it sits inside the parent, so cycle boundaries are invisible.
+        if (!REDUCED){
+          const period = 9 + i * 2.3;
+          const ph = (t % period) / period;
+          const out = Math.sin(ph * Math.PI);
+          const ang = i * 2.4 + Math.floor(t / period) * 1.9; // new direction each cycle
+          const rpx = cluster[0].r;
+          const dist = rpx * VISUAL_SCALE * (0.5 + 1.2 * out);
+          push(cluster[0].x + Math.cos(ang) * dist,
+               cluster[0].y + Math.sin(ang) * dist,
+               rpx * 0.2 * (0.6 + 0.4 * out));
         }
         i++;
       }
@@ -1400,7 +1426,35 @@
       return n;
     }
 
+    // Keep the invisible DOM hit targets on top of the drifting spheres
+    // (skipped in dev mode so drift doesn't fight dragging).
+    function applyDrift(t){
+      if (DEV_MODE || REDUCED) return;
+      let i = 0;
+      for (const b of bubbles){
+        if (!b.enabled) continue;
+        const [dx, dy] = driftXY(i, t);
+        const el = domByKey.get(keyMain(b.id));
+        if (el){
+          el.style.left = `${toPxX(b.x + dx, b.y + dy)}px`;
+          el.style.top  = `${toPxY(b.x + dx, b.y + dy)}px`;
+        }
+        if (expandedMainId === b.id && b.children){
+          for (const c of b.children){
+            const st = subState[b.id]?.[c.id];
+            const sel = domByKey.get(keySub(b.id, c.id));
+            if (st && sel && st.x != null){
+              sel.style.left = `${toPxX(st.x + dx, st.y + dy)}px`;
+              sel.style.top  = `${toPxY(st.x + dx, st.y + dy)}px`;
+            }
+          }
+        }
+        i++;
+      }
+    }
+
     function tick(tms){
+      applyDrift(tms * 0.001);
       if (prog){
         const t = tms * 0.001;
         gl.viewport(0, 0, mbCanvas.width, mbCanvas.height);

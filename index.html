@@ -746,6 +746,9 @@
       }
 
       setDimStates();
+      // Re-apply drift immediately so hit targets are never written un-drifted
+      // for a frame (that one frame causes a hover enter/leave flicker loop).
+      applyDrift(driftT);
       setStatus(`Main: ${bubbles.filter(b=>b.enabled).length} | Expanded: ${expandedMainId || "none"} | Selected: ${selected?.key || "none"}`);
     }
 
@@ -1234,8 +1237,9 @@
     // Ambient idle drift: clusters wander slowly even when the mouse is still.
     // Two incommensurate sines per axis so the path never visibly repeats.
     const DRIFT_A = 0.011; // normalized amplitude
+    let driftT = 0;        // last tick time, so renderLayout can re-apply drift
     function driftXY(i, t){
-      if (REDUCED) return [0, 0];
+      if (REDUCED || DEV_MODE) return [0, 0]; // dev mode: spheres must stay on their drag handles
       return [
         DRIFT_A * (Math.sin(t * 0.21 + i * 2.1) + 0.5 * Math.sin(t * 0.13 + i * 4.7)),
         DRIFT_A * (Math.cos(t * 0.17 + i * 3.3) + 0.5 * Math.cos(t * 0.11 + i * 1.9))
@@ -1454,7 +1458,8 @@
     }
 
     function tick(tms){
-      applyDrift(tms * 0.001);
+      driftT = tms * 0.001;
+      applyDrift(driftT);
       if (prog){
         const t = tms * 0.001;
         gl.viewport(0, 0, mbCanvas.width, mbCanvas.height);

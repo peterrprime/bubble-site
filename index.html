@@ -109,38 +109,23 @@
       filter: blur(.2px);
     }
 
+    /* Label reads as part of the glossy sphere: light weight, wide tracking,
+       and a faint etched shadow (dark above, light below) instead of a halo.
+       The sphere under it is near-black, so no backdrop is needed. */
     .label{
       text-align: center;
-      font-weight: 700;
+      font-weight: 500;
       text-transform: uppercase;
-      letter-spacing: .07em;
-      line-height: 1.2;
-      padding: 0 10px;
+      letter-spacing: .18em;
+      text-indent: .18em; /* re-center: letter-spacing trails the last glyph */
+      line-height: 1.4;
+      padding: 0 12px;
       pointer-events: none;
       font-size: inherit;
-      color: rgba(255,255,255,.96);
-      text-shadow: 0 2px 18px rgba(0,0,0,.65);
+      color: rgba(255,255,255,.9);
+      text-shadow: 0 -1px 1px rgba(0,0,0,.55), 0 1px 1px rgba(255,255,255,.10);
       position: relative;
       z-index: 1;
-    }
-
-    /* Fix: labels readable when metaballs are on (soft ink halo behind text) */
-    body.mbOn .label::before{
-      content:"";
-      position:absolute;
-      left:50%; top:50%;
-      transform: translate(-50%,-50%);
-      width: calc(100% + 28px);
-      height: calc(100% + 18px);
-      border-radius: 999px;
-      background: radial-gradient(circle at 50% 50%,
-        rgba(0,0,0,.55) 0%,
-        rgba(0,0,0,.28) 45%,
-        rgba(0,0,0,0) 72%
-      );
-      filter: blur(6px);
-      z-index: -1;
-      pointer-events:none;
     }
 
     /* Panel */
@@ -346,9 +331,9 @@
         "id": "design",
         "label": "Design",
         "href": "work.html",
-        "x": 0.49321266968325794,
-        "y": 0.47724867724867726,
-        "r": 0.20800000000000007,
+        "x": 0.5035252643948296,
+        "y": 0.4007220216606498,
+        "r": 0.205,
         "children": [
           { "id": "design-projects", "label": "Projects", "href": "#design-projects", "r": 0.07800000000000001, "enabled": true },
           { "id": "design-portfolio", "label": "Portfolio", "href": "#portfolio", "r": 0.062000000000000006, "enabled": true },
@@ -362,13 +347,13 @@
         "id": "architecture",
         "label": "Architecture",
         "href": "work.html#architecture",
-        "x": 0.3180995475113122,
-        "y": 0.2761904761904762,
-        "r": 0.1439999999999999,
+        "x": 0.254,
+        "y": 0.236,
+        "r": 0.157,
         "children": [
-          { "id": "arch-projects", "label": "Projects", "href": "#arch-projects", "r": 0.07, "enabled": true },
-          { "id": "arch-portfolio", "label": "Portfolio", "href": "#arch-portfolio", "r": 0.052, "enabled": true },
-          { "id": "arch-programs", "label": "Programs", "href": "#arch-programs", "r": 0.06, "enabled": true }
+          { "id": "arch-greenarc", "label": "GreenArc", "href": "#greenarc", "r": 0.07, "enabled": true },
+          { "id": "arch-pavilion", "label": "Pavilion", "href": "#pavilion", "r": 0.06, "enabled": true },
+          { "id": "arch-microhousing", "label": "Micro Housing", "href": "#microhousing", "r": 0.06, "enabled": true }
         ],
         "enabled": true,
         "subsEnabled": true,
@@ -378,9 +363,9 @@
         "id": "ai",
         "label": "AI",
         "href": "about.html#ai",
-        "x": 0.7149321266968326,
-        "y": 0.2761904761904762,
-        "r": 0.14800000000000005,
+        "x": 0.7567567567567568,
+        "y": 0.2226233453670277,
+        "r": 0.095,
         "children": [
           { "id": "ai-tools", "label": "Tools", "href": "#ai-tools", "r": 0.06, "enabled": true },
           { "id": "ai-projects", "label": "Projects", "href": "#ai-projects", "r": 0.07, "enabled": true }
@@ -393,8 +378,8 @@
         "id": "web",
         "label": "Web Design",
         "href": "work.html#web",
-        "x": 0.8144796380090498,
-        "y": 0.6365079365079365,
+        "x": 0.8190364277320799,
+        "y": 0.6534296028880866,
         "r": 0.14599999999999994,
         "children": [
           { "id": "web-sites", "label": "Sites", "href": "#web-sites", "r": 0.068, "enabled": true },
@@ -409,9 +394,9 @@
         "id": "code",
         "label": "Coding",
         "href": "work.html#coding",
-        "x": 0.532579185520362,
-        "y": 0.8624338624338624,
-        "r": 0.10600000000000004,
+        "x": 0.5663924794359577,
+        "y": 0.8050541516245487,
+        "r": 0.106,
         "children": [
           { "id": "code-projects", "label": "Projects", "href": "#code-projects", "r": 0.064, "enabled": true },
           { "id": "code-stack", "label": "Stack", "href": "#code-stack", "r": 0.056, "enabled": true }
@@ -424,9 +409,9 @@
         "id": "photo",
         "label": "Photography",
         "href": "work.html#photography",
-        "x": 0.2330316742081448,
-        "y": 0.6931216931216931,
-        "r": 0.10600000000000004,
+        "x": 0.2591069330199765,
+        "y": 0.7063778580024067,
+        "r": 0.074,
         "children": [
           { "id": "photo-gallery", "label": "Gallery", "href": "#photo-gallery", "r": 0.062, "enabled": true },
           { "id": "photo-sets", "label": "Sets", "href": "#photo-sets", "r": 0.054, "enabled": true }
@@ -535,9 +520,10 @@
         if (st.pinned && st.x != null && st.y != null) continue;
         if (!autoSubsEl.checked && st.x != null && st.y != null) continue;
 
-        // ring in px (radii are minDim-relative, coords are width/height-relative),
-        // sized so sub spheres sit just off the parent and neck into it
-        const ring = (m.r + st.r) * 0.92 * minDim();
+        // ring in px (radii are minDim-relative, coords are width/height-relative).
+        // 1.02 > VISUAL_SCALE, so sub spheres end up genuinely separate from the
+        // parent with only a thin metaball neck bridging the gap.
+        const ring = (m.r + st.r) * 1.02 * minDim();
         const rw = portrait() ? window.innerHeight : window.innerWidth;
         const rh = portrait() ? window.innerWidth : window.innerHeight;
         const a = angle0 + i * (2*Math.PI / count);
@@ -586,8 +572,9 @@
       el.style.width = `${d}px`;
       el.style.height = `${d}px`;
       // size label to the bubble, capped so long words stay inside the sphere
+      // (0.88/len accounts for the .18em tracking)
       const len = Math.max(4, (el.querySelector(".label")?.textContent || "").length);
-      el.style.fontSize = `${clamp(Math.round(Math.min(d * 0.095, d * 1.05 / len)), 10, 22)}px`;
+      el.style.fontSize = `${clamp(Math.round(Math.min(d * 0.085, d * 0.88 / len)), 10, 19)}px`;
 
       el.classList.toggle("selected", selected?.key === key);
     }
@@ -1228,7 +1215,10 @@
 
     const MAX_BALLS = 40;
     const VISUAL_SCALE = 0.92; // spheres render slightly smaller than their hit circles; big enough that neighbors neck into each other
-    const SMIN_K = 0.035;      // ponytail: neck-thickness knob (1/css-px); raise for tighter necks
+    const SMIN_K = 0.035;      // ponytail: neck-thickness knob (1/css-px @ minDim 1080); raise for tighter necks
+    // Necks form when the surface gap < 2*ln(2)/K (~40 css px at 1080p). The main
+    // constellation is tuned to rest at ~22-24px gaps so thin necks join it up.
+    const K_REF_MIN_DIM = 1080; // K scales with minDim so necks survive any screen size
     const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     // Ambient idle drift: clusters wander slowly even when the mouse is still.
@@ -1385,8 +1375,12 @@
         const [ddx, ddy] = driftXY(i, t);
         const cluster = getClusterBalls(b.id, ddx, ddy);
         for (let j = 0; j < cluster.length; j++){
-          const grow = (j > 0 && b.id === expandedMainId) ? ease : 1; // subs bloom in
-          push(cluster[j].x, cluster[j].y, cluster[j].r * VISUAL_SCALE * breathe * grow);
+          // subs bloom: they slide out of the parent to their ring position while
+          // growing, so the split reads as spheres pulling apart, not scaling in place
+          const grow = (j > 0 && b.id === expandedMainId) ? ease : 1;
+          const bx = cluster[0].x + (cluster[j].x - cluster[0].x) * grow;
+          const by = cluster[0].y + (cluster[j].y - cluster[0].y) * grow;
+          push(bx, by, cluster[j].r * VISUAL_SCALE * breathe * grow);
         }
 
         // Split satellite: a droplet detaches, floats out, and re-merges.
@@ -1466,7 +1460,7 @@
           const n = collectBalls(t);
           gl.uniform3fv(uBallsLoc, ballData);
           gl.uniform1i(uCountLoc, n);
-          gl.uniform1f(uKLoc, SMIN_K / devicePixelRatio);
+          gl.uniform1f(uKLoc, SMIN_K * (K_REF_MIN_DIM / minDim()) / devicePixelRatio);
           gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
         }
       }

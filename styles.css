@@ -51,9 +51,23 @@ main{
 }
 
 h1{ font-size: 34px; font-weight: 650; letter-spacing: -.2px; margin: 0 0 8px; }
-h2{ font-size: 22px; font-weight: 650; letter-spacing: -.1px; margin: 56px 0 4px; }
+
+/* Glossy sphere markers pull the landing's metaball look onto the subpages:
+   sections get a big glossy black bead, projects a smaller satellite. */
+h2, h3{ display: flex; align-items: center; gap: 12px; }
+h2::before, h3::before{
+  content: "";
+  flex: none;
+  border-radius: 999px;
+  background: radial-gradient(circle at 32% 28%, #6a6d74 0%, #26262c 42%, #0b0b0e 78%);
+  box-shadow: inset 0 -2px 4px rgba(255,255,255,.10), 0 3px 8px rgba(0,0,0,.28);
+}
+h2::before{ width: 16px; height: 16px; }
+h3::before{ width: 10px; height: 10px; }
+
+h2{ font-size: 20px; font-weight: 650; letter-spacing: .12em; text-transform: uppercase; margin: 56px 0 4px; }
 h2:first-of-type{ margin-top: 32px; }
-h3{ font-size: 17px; font-weight: 650; letter-spacing: -.05px; margin: 32px 0 4px; }
+h3{ font-size: 17px; font-weight: 650; letter-spacing: -.05px; margin: 40px 0 4px; }
 .dek{ font-size: 15px; color: rgba(0,0,0,.58); margin: 0 0 40px; max-width: 640px; line-height: 1.5; }
 p{ line-height: 1.6; }
 
@@ -71,7 +85,9 @@ figure img{
   box-shadow: 0 12px 40px rgba(0,0,0,.08);
 }
 figure.callout img{ border-color: rgba(0,0,0,.28); box-shadow: 0 12px 50px rgba(0,0,0,.16); }
-figcaption{ font-size: 13px; color: rgba(0,0,0,.58); margin-top: 8px; }
+/* Low-res source images render at reduced width instead of stretching soft */
+figure.small{ max-width: 480px; }
+figcaption{ font-size: 13px; color: rgba(0,0,0,.58); margin-top: 8px; max-width: 640px; }
 figcaption strong{ color: var(--txtDark); }
 
 /* Two-column grid variant for photo sets */

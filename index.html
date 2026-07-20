@@ -961,9 +961,9 @@
         if (!autoSubsEl.checked && st.x != null && st.y != null) continue;
 
         // ring in px (radii are minDim-relative, coords are width/height-relative).
-        // 1.35: subs float near the parent but clearly separate. The "Lines"
+        // 1.15: subs hug the parent, just barely separate. The "Lines"
         // toggle can string them together with capsule primitives.
-        const ring = (m.r + st.r) * 1.35 * minDim();
+        const ring = (m.r + st.r) * 1.15 * minDim();
         const rw = portrait() ? window.innerHeight : window.innerWidth;
         const rh = portrait() ? window.innerWidth : window.innerHeight;
         const a = (arc >= 2 * Math.PI)

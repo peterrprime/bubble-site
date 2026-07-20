@@ -82,7 +82,8 @@
       pointer-events: none;
       z-index: 1;
     }
-    .line{ stroke: rgba(0,0,0,.30); stroke-width: 1.25; stroke-linecap: round; }
+    /* Liquid threads: filled tapered filaments, not stroked lines */
+    .thread{ fill: rgba(8,8,10,.92); }
 
     .bubble{
       position: absolute;
@@ -287,20 +288,23 @@
 
     .paneWrap{ max-width: 980px; margin: 40px auto 96px; padding: 0 24px; box-sizing: border-box; }
 
-    /* Section titles styled like the bubbles themselves: glossy black pill,
-       white letter-spaced label — same language as the hero spheres. */
+    /* Section titles: frosted-glass pills (Apple-style) — translucent,
+       blurred, hairline highlight border, soft depth. */
     #portfolio h2{
       display: inline-flex; align-items: center;
-      background:
-        radial-gradient(circle at 22% 30%, rgba(255,255,255,.5) 0%, rgba(255,255,255,.10) 12%, transparent 26%),
-        linear-gradient(180deg, #2c2d33, #0a0a0d);
-      color: rgba(255,255,255,.92);
+      background: linear-gradient(180deg, rgba(255,255,255,.60), rgba(255,255,255,.28));
+      -webkit-backdrop-filter: blur(18px) saturate(1.6);
+      backdrop-filter: blur(18px) saturate(1.6);
+      color: rgba(0,0,0,.76);
+      border: 1px solid rgba(255,255,255,.75);
       border-radius: 999px;
       padding: 12px 28px;
-      font-size: 14px; font-weight: 500;
+      font-size: 14px; font-weight: 600;
       letter-spacing: .18em; text-indent: .18em; text-transform: uppercase;
-      text-shadow: 0 -1px 1px rgba(0,0,0,.55), 0 1px 1px rgba(255,255,255,.10);
-      box-shadow: inset 0 -2px 6px rgba(200,210,230,.14), 0 10px 26px rgba(0,0,0,.22);
+      box-shadow:
+        0 10px 32px rgba(0,0,0,.10),
+        inset 0 1px 0 rgba(255,255,255,.9),
+        inset 0 -1px 1px rgba(0,0,0,.05);
     }
     #portfolio h2::before{ display: none; } /* pill replaces the bead marker */
     #portfolio h3{ letter-spacing: .06em; text-transform: uppercase; font-size: 15px; }
@@ -390,10 +394,16 @@
       100%{ transform: translate(-8px, -8px) scale(.1); opacity: 0; }
     }
     .conTitle{
-      font-size: 13px; font-weight: 750; letter-spacing: .14em; text-transform: uppercase;
+      font-size: 12px; font-weight: 650; letter-spacing: .14em; text-indent: .14em; text-transform: uppercase;
       color: rgba(0,0,0,.72);
+      padding: 9px 20px; border-radius: 999px;
+      background: linear-gradient(180deg, rgba(255,255,255,.60), rgba(255,255,255,.28));
+      -webkit-backdrop-filter: blur(18px) saturate(1.6);
+      backdrop-filter: blur(18px) saturate(1.6);
+      border: 1px solid rgba(255,255,255,.75);
+      box-shadow: 0 8px 24px rgba(0,0,0,.10), inset 0 1px 0 rgba(255,255,255,.9);
     }
-    .conSub{ font-size: 13px; color: rgba(0,0,0,.5); }
+    .conSub{ font-size: 13px; color: rgba(0,0,0,.5); margin-top: 4px; }
     .conSub::after{ content: ""; animation: dots 1.8s steps(4, end) infinite; }
     @keyframes dots{ 0%{content:"";} 25%{content:".";} 50%{content:"..";} 75%{content:"...";} }
     @media (prefers-reduced-motion: reduce){
@@ -444,7 +454,7 @@
         <button class="btn" id="deleteSel">Delete selected</button>
 
         <label class="toggle"><input type="checkbox" id="editMode" checked /> Edit</label>
-        <label class="toggle"><input type="checkbox" id="showLines" /> Lines</label>
+        <label class="toggle"><input type="checkbox" id="showLines" checked /> Lines</label>
         <label class="toggle"><input type="checkbox" id="autoSubs" checked /> Auto sub layout</label>
         <label class="toggle"><input type="checkbox" id="mbOn" checked /> Canvas metaballs</label>
         <label class="toggle"><input type="checkbox" id="dimOthers" checked /> Dim others when expanded</label>
@@ -952,8 +962,8 @@
         if (!autoSubsEl.checked && st.x != null && st.y != null) continue;
 
         // ring in px (radii are minDim-relative, coords are width/height-relative).
-        // 1.15: subs sit just apart from the parent; a thin liquid strand
-        // (pushString in collectBalls) bridges the small gap.
+        // 1.15: subs sit just apart from the parent; a thin liquid thread
+        // (drawThreads) bridges the small gap.
         const ring = (m.r + st.r) * 1.15 * minDim();
         const rw = portrait() ? window.innerHeight : window.innerWidth;
         const rh = portrait() ? window.innerWidth : window.innerHeight;
@@ -1023,32 +1033,89 @@
     }
 
     // =========================
-    // Lines
+    // Liquid threads — thin tapered filaments of "black liquid" between
+    // spheres. A filled shape (two offset beziers), NOT a stroked line:
+    // ~9px meniscus where it tucks under each sphere, ~2px thread at the
+    // middle, slight gravity sag. Ends sit inside the sphere radius so the
+    // spheres (drawn above on the canvas) hide the seam.
     // =========================
-    function drawLines(){
+    function threadPath(ax, ay, ar, bx, by, br){
+      const dx = bx - ax, dy = by - ay;
+      const dist = Math.hypot(dx, dy);
+      if (dist < ar + br + 8) return ""; // touching — the metaballs handle it
+      const ux = dx / dist, uy = dy / dist;
+      const pA = [ax + ux * ar * 0.96, ay + uy * ar * 0.96];
+      const pB = [bx - ux * br * 0.96, by - uy * br * 0.96];
+      const sag = Math.min(16, (dist - ar - br) * 0.10);
+      const cx2 = (pA[0] + pB[0]) / 2, cy2 = (pA[1] + pB[1]) / 2 + sag;
+      const N = 14, wEnd = 4.5, wMid = 1.1; // half-widths in px
+      const up = [], dn = [];
+      for (let s = 0; s <= N; s++){
+        const t = s / N, o = 1 - t;
+        const x = o*o*pA[0] + 2*o*t*cx2 + t*t*pB[0];
+        const y = o*o*pA[1] + 2*o*t*cy2 + t*t*pB[1];
+        const tx = 2*o*(cx2 - pA[0]) + 2*t*(pB[0] - cx2);
+        const ty = 2*o*(cy2 - pA[1]) + 2*t*(pB[1] - cy2);
+        const tl = Math.hypot(tx, ty) || 1;
+        const w = wMid + (wEnd - wMid) * Math.pow(Math.abs(2*t - 1), 1.6);
+        up.push((x - ty/tl*w).toFixed(1) + "," + (y + tx/tl*w).toFixed(1));
+        dn.push((x + ty/tl*w).toFixed(1) + "," + (y - tx/tl*w).toFixed(1));
+      }
+      return "M" + up.join("L") + "L" + dn.reverse().join("L") + "Z";
+    }
+
+    function drawThreads(t){
       svg.innerHTML = "";
       if (!showLinesEl.checked) return;
-
-      const center = getMain("design") || bubbles[0];
-      if (!center) return;
 
       const w = window.innerWidth, h = window.innerHeight;
       svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
       svg.setAttribute("width", w);
       svg.setAttribute("height", h);
 
-      const cx = toPxX(center.x, center.y), cy = toPxY(center.x, center.y);
-
+      const md = minDim();
+      const still = DEV_MODE || REDUCED;
+      const pos = {}; let i = 0;
       for (const b of bubbles){
         if (!b.enabled) continue;
-        if (b.id === center.id) continue;
-        const x = toPxX(b.x, b.y), y = toPxY(b.x, b.y);
+        const [dx, dy] = still ? [0, 0] : driftXY(i, t);
+        pos[b.id] = { x: toPxX(b.x + dx, b.y + dy), y: toPxY(b.x + dx, b.y + dy),
+                      r: b.r * md * VISUAL_SCALE, dx, dy };
+        i++;
+      }
 
-        const line = document.createElementNS("http://www.w3.org/2000/svg","line");
-        line.setAttribute("x1", cx); line.setAttribute("y1", cy);
-        line.setAttribute("x2", x);  line.setAttribute("y2", y);
-        line.setAttribute("class", "line");
-        svg.appendChild(line);
+      const paths = [];
+      const hub = getMain("design");
+      if (hub && hub.enabled && pos[hub.id]){
+        for (const b of bubbles){
+          if (!b.enabled || b.id === hub.id) continue;
+          const A = pos[hub.id], B = pos[b.id];
+          paths.push(threadPath(A.x, A.y, A.r, B.x, B.y, B.r));
+        }
+      }
+
+      // threads from an expanded main to its split-out subs (follow the bloom)
+      if (expandedMainId && pos[expandedMainId]){
+        const m = getMain(expandedMainId);
+        const P = pos[expandedMainId];
+        const bloom = still ? 1 : Math.min(1, (t - expandT) / 0.55);
+        const ease = 1 - Math.pow(1 - bloom, 3);
+        for (const c of (m.children || [])){
+          if (c.enabled === false) continue;
+          const st = subState[m.id]?.[c.id];
+          if (!st || st.x == null) continue;
+          const sx0 = toPxX(st.x + P.dx, st.y + P.dy), sy0 = toPxY(st.x + P.dx, st.y + P.dy);
+          const bx = P.x + (sx0 - P.x) * ease, by = P.y + (sy0 - P.y) * ease;
+          paths.push(threadPath(P.x, P.y, P.r, bx, by, (st.r ?? c.r) * md * VISUAL_SCALE * ease));
+        }
+      }
+
+      for (const d of paths){
+        if (!d) continue;
+        const p = document.createElementNS("http://www.w3.org/2000/svg","path");
+        p.setAttribute("d", d);
+        p.setAttribute("class", "thread");
+        svg.appendChild(p);
       }
     }
 
@@ -1155,7 +1222,7 @@
         el.classList.toggle("selected", selected?.key === k);
       }
 
-      drawLines(); // after sub positions exist, so sub strings can draw
+      drawThreads(driftT); // after sub positions exist, so sub threads can draw
       setDimStates();
       // Re-apply drift immediately so hit targets are never written un-drifted
       // for a frame (that one frame causes a hover enter/leave flicker loop).
@@ -1640,10 +1707,9 @@
       return balls;
     }
 
-    const MAX_BALLS = 64;      // headroom for the bead-strings tying subs to parents
+    const MAX_BALLS = 40;
     const VISUAL_SCALE = 0.92; // spheres render slightly smaller than their hit circles; big enough that neighbors neck into each other
     const SMIN_K = 0.06;       // ponytail: neck-thickness knob (1/css-px @ minDim 1080); raise for tighter necks
-    const STRING_R = 0.0045;   // bead radius of the sub connection strands (minDim-relative)
     // Necks form when the surface gap < 2*ln(2)/K (~40 css px at 1080p). The main
     // constellation is tuned to rest at ~22-24px gaps so thin necks join it up.
     const K_REF_MIN_DIM = 1080; // K scales with minDim so necks survive any screen size
@@ -1794,20 +1860,6 @@
         n++;
       };
 
-      // Super-thin liquid strand: a chain of tiny beads from surface A to
-      // surface B; the smooth-min melts them into one continuous string.
-      const pushString = (ax, ay, ar, bx, by, br) => {
-        const dx = bx - ax, dy = by - ay;
-        const dist = Math.hypot(dx, dy);
-        const r = STRING_R * md;
-        if (dist < 1 || dist <= ar + br) return; // overlapping — no strand needed
-        const t0 = (ar - r) / dist, t1 = 1 - (br - r) / dist;
-        const steps = Math.min(10, Math.max(2, Math.ceil((dist - ar - br + 2 * r) / (r * 1.5))));
-        for (let s = 0; s <= steps; s++){
-          const k = t0 + (t1 - t0) * (s / steps);
-          push(ax + dx * k, ay + dy * k, r);
-        }
-      };
 
 
       if (expandedMainId !== lastExpanded){ lastExpanded = expandedMainId; expandT = t; }
@@ -1826,10 +1878,7 @@
           const grow = (j > 0 && b.id === expandedMainId) ? ease : 1;
           const bx = cluster[0].x + (cluster[j].x - cluster[0].x) * grow;
           const by = cluster[0].y + (cluster[j].y - cluster[0].y) * grow;
-          const br = cluster[j].r * VISUAL_SCALE * breathe * grow;
-          push(bx, by, br);
-          // thin strand tying each split-out sub back to its parent
-          if (j > 0) pushString(cluster[0].x, cluster[0].y, cluster[0].r * VISUAL_SCALE, bx, by, br);
+          push(bx, by, cluster[j].r * VISUAL_SCALE * breathe * grow);
         }
 
         // Split satellite: a droplet detaches, floats out, and re-merges.
@@ -1900,6 +1949,7 @@
     function tick(tms){
       driftT = tms * 0.001;
       applyDrift(driftT);
+      drawThreads(driftT);
       if (prog){
         const t = tms * 0.001;
         gl.viewport(0, 0, mbCanvas.width, mbCanvas.height);

@@ -453,7 +453,7 @@
         <button class="btn" id="deleteSel">Delete selected</button>
 
         <label class="toggle"><input type="checkbox" id="editMode" checked /> Edit</label>
-        <label class="toggle"><input type="checkbox" id="showLines" checked /> Lines</label>
+        <label class="toggle"><input type="checkbox" id="showLines" /> Lines</label>
         <label class="toggle"><input type="checkbox" id="autoSubs" checked /> Auto sub layout</label>
         <label class="toggle"><input type="checkbox" id="mbOn" checked /> Canvas metaballs</label>
         <label class="toggle"><input type="checkbox" id="dimOthers" checked /> Dim others when expanded</label>
@@ -961,9 +961,9 @@
         if (!autoSubsEl.checked && st.x != null && st.y != null) continue;
 
         // ring in px (radii are minDim-relative, coords are width/height-relative).
-        // 1.6: subs fly well clear of the parent; a thin liquid string
-        // (capsule primitive in the shader) spans the long gap.
-        const ring = (m.r + st.r) * 1.6 * minDim();
+        // 1.35: subs float near the parent but clearly separate. The "Lines"
+        // toggle can string them together with capsule primitives.
+        const ring = (m.r + st.r) * 1.35 * minDim();
         const rw = portrait() ? window.innerHeight : window.innerWidth;
         const rh = portrait() ? window.innerWidth : window.innerHeight;
         const a = (arc >= 2 * Math.PI)
@@ -1623,7 +1623,10 @@
 
     const MAX_BALLS = 40;
     const MAX_SEGS = 16;       // liquid strings (capsule primitives in the shader)
-    const STRING_R = 0.0028;   // string radius, minDim-relative (~2px @ 720) — "way thinner"
+    // String thickness scales with the surface gap it spans — near-touching
+    // spheres get a fat neck, far-flung ones a stretched thin thread.
+    const STRING_R_NEAR = 8, STRING_R_FAR = 2.8; // css px, at gaps of <=60px / >=380px
+    const stringR = (gap) => STRING_R_NEAR - (STRING_R_NEAR - STRING_R_FAR) * Math.min(1, Math.max(0, (gap - 60) / 320));
     const VISUAL_SCALE = 0.92; // spheres render slightly smaller than their hit circles; big enough that neighbors neck into each other
     const SMIN_K = 0.06;       // ponytail: neck-thickness knob (1/css-px @ minDim 1080); raise for tighter necks
     // Necks form when the surface gap < 2*ln(2)/K (~40 css px at 1080p). The main
@@ -1651,7 +1654,7 @@
       uniform int uCount;
       uniform vec4 uSegs[${MAX_SEGS}];   // string endpoints: ax, ay, bx, by (device px, y-up)
       uniform int uSegCount;
-      uniform float uSegR;               // string radius (device px)
+      uniform float uSegRs[${MAX_SEGS}]; // per-string radius (device px) — closer spheres get fatter strings
       uniform float uK;
       out vec4 outColor;
 
@@ -1679,10 +1682,10 @@
           float h = clamp(dot(pa, ba) / max(dot(ba, ba), 1e-4), 0.0, 1.0);
           vec2 dv = pa - ba * h;
           float len = max(length(dv), 1e-4);
-          float d = len - uSegR;
+          float d = len - uSegRs[i];
           float w = exp(-uK * d);
           sum  += w;
-          rsum += w * uSegR;
+          rsum += w * uSegRs[i];
           gsum += w * (dv / len);
         }
         sum = max(sum, 1e-24);
@@ -1728,9 +1731,10 @@
         outColor = vec4(col * mask, aOut); // premultiplied; shadow is pure black
       }`;
 
-    let prog = null, uBallsLoc, uCountLoc, uKLoc, uSegsLoc, uSegCountLoc, uSegRLoc;
+    let prog = null, uBallsLoc, uCountLoc, uKLoc, uSegsLoc, uSegCountLoc, uSegRsLoc;
     const ballData = new Float32Array(MAX_BALLS * 3);
     const segData = new Float32Array(MAX_SEGS * 4);
+    const segRData = new Float32Array(MAX_SEGS);
 
     function initGL(){
       if (!gl) return false;
@@ -1756,7 +1760,7 @@
       uKLoc     = gl.getUniformLocation(prog, "uK");
       uSegsLoc     = gl.getUniformLocation(prog, "uSegs");
       uSegCountLoc = gl.getUniformLocation(prog, "uSegCount");
-      uSegRLoc     = gl.getUniformLocation(prog, "uSegR");
+      uSegRsLoc    = gl.getUniformLocation(prog, "uSegRs");
       const buf = gl.createBuffer();
       gl.bindBuffer(gl.ARRAY_BUFFER, buf);
       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
@@ -1797,10 +1801,12 @@
         ballData[n*3+2] = r * dpr;
         n++;
       };
-      const pushSeg = (x1, y1, x2, y2) => {
+      const pushSeg = (x1, y1, r1, x2, y2, r2) => {
         if (ns >= MAX_SEGS) return;
         segData[ns*4]   = x1 * dpr; segData[ns*4+1] = H - y1 * dpr;
         segData[ns*4+2] = x2 * dpr; segData[ns*4+3] = H - y2 * dpr;
+        const gap = Math.max(0, Math.hypot(x2 - x1, y2 - y1) - r1 - r2);
+        segRData[ns] = stringR(gap) * dpr;
         ns++;
       };
       const centers = {}; // id -> drifted center px, for the hub strings
@@ -1824,9 +1830,11 @@
           const grow = (j > 0 && b.id === expandedMainId) ? ease : 1;
           const bx = cluster[0].x + (cluster[j].x - cluster[0].x) * grow;
           const by = cluster[0].y + (cluster[j].y - cluster[0].y) * grow;
-          push(bx, by, cluster[j].r * VISUAL_SCALE * breathe * grow);
-          // thin liquid string from parent to each split-out sub
-          if (j > 0) pushSeg(cluster[0].x, cluster[0].y, bx, by);
+          const br0 = cluster[j].r * VISUAL_SCALE * breathe * grow;
+          push(bx, by, br0);
+          // thin liquid string from parent to each split-out sub (off by default;
+          // the dev "Lines" toggle turns all strings back on)
+          if (j > 0 && showLinesEl.checked) pushSeg(cluster[0].x, cluster[0].y, cluster[0].r * VISUAL_SCALE, bx, by, br0);
         }
 
         // Split satellite: a droplet detaches, floats out, and re-merges.
@@ -1857,7 +1865,7 @@
         for (const b of bubbles){
           if (!b.enabled || b.id === "design") continue;
           const c = centers[b.id];
-          if (c) pushSeg(hc.x, hc.y, c.x, c.y);
+          if (c) pushSeg(hc.x, hc.y, hc.r * VISUAL_SCALE, c.x, c.y, c.r * VISUAL_SCALE);
         }
       }
 
@@ -1918,7 +1926,7 @@
           gl.uniform1i(uCountLoc, counts.n);
           gl.uniform4fv(uSegsLoc, segData);
           gl.uniform1i(uSegCountLoc, counts.ns);
-          gl.uniform1f(uSegRLoc, STRING_R * minDim() * devicePixelRatio);
+          gl.uniform1fv(uSegRsLoc, segRData);
           gl.uniform1f(uKLoc, SMIN_K * (K_REF_MIN_DIM / minDim()) / devicePixelRatio);
           gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
         }

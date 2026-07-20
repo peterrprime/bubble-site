@@ -82,8 +82,7 @@
       pointer-events: none;
       z-index: 1;
     }
-    /* Liquid threads: filled tapered filaments, not stroked lines */
-    .thread{ fill: rgba(8,8,10,.92); }
+    .line{ stroke: rgba(0,0,0,.20); stroke-width: 1; stroke-dasharray: 3 6; } /* dev-only layout lines */
 
     .bubble{
       position: absolute;
@@ -962,9 +961,9 @@
         if (!autoSubsEl.checked && st.x != null && st.y != null) continue;
 
         // ring in px (radii are minDim-relative, coords are width/height-relative).
-        // 1.15: subs sit just apart from the parent; a thin liquid thread
-        // (drawThreads) bridges the small gap.
-        const ring = (m.r + st.r) * 1.15 * minDim();
+        // 1.6: subs fly well clear of the parent; a thin liquid string
+        // (capsule primitive in the shader) spans the long gap.
+        const ring = (m.r + st.r) * 1.6 * minDim();
         const rw = portrait() ? window.innerHeight : window.innerWidth;
         const rh = portrait() ? window.innerWidth : window.innerHeight;
         const a = (arc >= 2 * Math.PI)
@@ -1032,92 +1031,8 @@
       svg.style.opacity = (dimOthersEl.checked && expandedMainId) ? "0.35" : "1";
     }
 
-    // =========================
-    // Liquid threads — thin tapered filaments of "black liquid" between
-    // spheres. A filled shape (two offset beziers), NOT a stroked line:
-    // ~9px meniscus where it tucks under each sphere, ~2px thread at the
-    // middle, slight gravity sag. Ends sit inside the sphere radius so the
-    // spheres (drawn above on the canvas) hide the seam.
-    // =========================
-    function threadPath(ax, ay, ar, bx, by, br){
-      const dx = bx - ax, dy = by - ay;
-      const dist = Math.hypot(dx, dy);
-      if (dist < ar + br + 8) return ""; // touching — the metaballs handle it
-      const ux = dx / dist, uy = dy / dist;
-      const pA = [ax + ux * ar * 0.96, ay + uy * ar * 0.96];
-      const pB = [bx - ux * br * 0.96, by - uy * br * 0.96];
-      const sag = Math.min(16, (dist - ar - br) * 0.10);
-      const cx2 = (pA[0] + pB[0]) / 2, cy2 = (pA[1] + pB[1]) / 2 + sag;
-      const N = 14, wEnd = 4.5, wMid = 1.1; // half-widths in px
-      const up = [], dn = [];
-      for (let s = 0; s <= N; s++){
-        const t = s / N, o = 1 - t;
-        const x = o*o*pA[0] + 2*o*t*cx2 + t*t*pB[0];
-        const y = o*o*pA[1] + 2*o*t*cy2 + t*t*pB[1];
-        const tx = 2*o*(cx2 - pA[0]) + 2*t*(pB[0] - cx2);
-        const ty = 2*o*(cy2 - pA[1]) + 2*t*(pB[1] - cy2);
-        const tl = Math.hypot(tx, ty) || 1;
-        const w = wMid + (wEnd - wMid) * Math.pow(Math.abs(2*t - 1), 1.6);
-        up.push((x - ty/tl*w).toFixed(1) + "," + (y + tx/tl*w).toFixed(1));
-        dn.push((x + ty/tl*w).toFixed(1) + "," + (y - tx/tl*w).toFixed(1));
-      }
-      return "M" + up.join("L") + "L" + dn.reverse().join("L") + "Z";
-    }
-
-    function drawThreads(t){
-      svg.innerHTML = "";
-      if (!showLinesEl.checked) return;
-
-      const w = window.innerWidth, h = window.innerHeight;
-      svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
-      svg.setAttribute("width", w);
-      svg.setAttribute("height", h);
-
-      const md = minDim();
-      const still = DEV_MODE || REDUCED;
-      const pos = {}; let i = 0;
-      for (const b of bubbles){
-        if (!b.enabled) continue;
-        const [dx, dy] = still ? [0, 0] : driftXY(i, t);
-        pos[b.id] = { x: toPxX(b.x + dx, b.y + dy), y: toPxY(b.x + dx, b.y + dy),
-                      r: b.r * md * VISUAL_SCALE, dx, dy };
-        i++;
-      }
-
-      const paths = [];
-      const hub = getMain("design");
-      if (hub && hub.enabled && pos[hub.id]){
-        for (const b of bubbles){
-          if (!b.enabled || b.id === hub.id) continue;
-          const A = pos[hub.id], B = pos[b.id];
-          paths.push(threadPath(A.x, A.y, A.r, B.x, B.y, B.r));
-        }
-      }
-
-      // threads from an expanded main to its split-out subs (follow the bloom)
-      if (expandedMainId && pos[expandedMainId]){
-        const m = getMain(expandedMainId);
-        const P = pos[expandedMainId];
-        const bloom = still ? 1 : Math.min(1, (t - expandT) / 0.55);
-        const ease = 1 - Math.pow(1 - bloom, 3);
-        for (const c of (m.children || [])){
-          if (c.enabled === false) continue;
-          const st = subState[m.id]?.[c.id];
-          if (!st || st.x == null) continue;
-          const sx0 = toPxX(st.x + P.dx, st.y + P.dy), sy0 = toPxY(st.x + P.dx, st.y + P.dy);
-          const bx = P.x + (sx0 - P.x) * ease, by = P.y + (sy0 - P.y) * ease;
-          paths.push(threadPath(P.x, P.y, P.r, bx, by, (st.r ?? c.r) * md * VISUAL_SCALE * ease));
-        }
-      }
-
-      for (const d of paths){
-        if (!d) continue;
-        const p = document.createElementNS("http://www.w3.org/2000/svg","path");
-        p.setAttribute("d", d);
-        p.setAttribute("class", "thread");
-        svg.appendChild(p);
-      }
-    }
+    // Liquid strings now live in the WebGL field itself (capsule primitives —
+    // see uSegs in the shader); the SVG layer is unused for visitors.
 
     // =========================
     // Render layout
@@ -1222,7 +1137,6 @@
         el.classList.toggle("selected", selected?.key === k);
       }
 
-      drawThreads(driftT); // after sub positions exist, so sub threads can draw
       setDimStates();
       // Re-apply drift immediately so hit targets are never written un-drifted
       // for a frame (that one frame causes a hover enter/leave flicker loop).
@@ -1708,6 +1622,8 @@
     }
 
     const MAX_BALLS = 40;
+    const MAX_SEGS = 16;       // liquid strings (capsule primitives in the shader)
+    const STRING_R = 0.0028;   // string radius, minDim-relative (~2px @ 720) — "way thinner"
     const VISUAL_SCALE = 0.92; // spheres render slightly smaller than their hit circles; big enough that neighbors neck into each other
     const SMIN_K = 0.06;       // ponytail: neck-thickness knob (1/css-px @ minDim 1080); raise for tighter necks
     // Necks form when the surface gap < 2*ln(2)/K (~40 css px at 1080p). The main
@@ -1733,10 +1649,15 @@
       precision highp float;
       uniform vec3 uBalls[${MAX_BALLS}]; // x, y (device px, y-up), radius
       uniform int uCount;
+      uniform vec4 uSegs[${MAX_SEGS}];   // string endpoints: ax, ay, bx, by (device px, y-up)
+      uniform int uSegCount;
+      uniform float uSegR;               // string radius (device px)
       uniform float uK;
       out vec4 outColor;
 
-      // Exponential smooth-min over circle SDFs. Also returns the blended
+      // Exponential smooth-min over circle + capsule SDFs. Capsules are the
+      // liquid strings: same field, so they get the same lighting and melt
+      // into the spheres with a real meniscus. Also returns the blended
       // local radius and the field gradient (both smooth across necks).
       void scene(vec2 p, out float sd, out float R, out vec2 g){
         float sum = 0.0, rsum = 0.0;
@@ -1749,6 +1670,19 @@
           float w = exp(-uK * d);
           sum  += w;
           rsum += w * uBalls[i].z;
+          gsum += w * (dv / len);
+        }
+        for (int i = 0; i < ${MAX_SEGS}; i++){
+          if (i >= uSegCount) break;
+          vec2 a = uSegs[i].xy, ba = uSegs[i].zw - a;
+          vec2 pa = p - a;
+          float h = clamp(dot(pa, ba) / max(dot(ba, ba), 1e-4), 0.0, 1.0);
+          vec2 dv = pa - ba * h;
+          float len = max(length(dv), 1e-4);
+          float d = len - uSegR;
+          float w = exp(-uK * d);
+          sum  += w;
+          rsum += w * uSegR;
           gsum += w * (dv / len);
         }
         sum = max(sum, 1e-24);
@@ -1794,8 +1728,9 @@
         outColor = vec4(col * mask, aOut); // premultiplied; shadow is pure black
       }`;
 
-    let prog = null, uBallsLoc, uCountLoc, uKLoc;
+    let prog = null, uBallsLoc, uCountLoc, uKLoc, uSegsLoc, uSegCountLoc, uSegRLoc;
     const ballData = new Float32Array(MAX_BALLS * 3);
+    const segData = new Float32Array(MAX_SEGS * 4);
 
     function initGL(){
       if (!gl) return false;
@@ -1819,6 +1754,9 @@
       uBallsLoc = gl.getUniformLocation(prog, "uBalls");
       uCountLoc = gl.getUniformLocation(prog, "uCount");
       uKLoc     = gl.getUniformLocation(prog, "uK");
+      uSegsLoc     = gl.getUniformLocation(prog, "uSegs");
+      uSegCountLoc = gl.getUniformLocation(prog, "uSegCount");
+      uSegRLoc     = gl.getUniformLocation(prog, "uSegR");
       const buf = gl.createBuffer();
       gl.bindBuffer(gl.ARRAY_BUFFER, buf);
       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
@@ -1850,7 +1788,7 @@
     let lastExpanded = null, expandT = 0;
 
     function collectBalls(t){
-      let n = 0;
+      let n = 0, ns = 0;
       const md = minDim(), dpr = devicePixelRatio, H = mbCanvas.height;
       const push = (x, y, r) => {
         if (n >= MAX_BALLS || r <= 0.5) return;
@@ -1859,6 +1797,13 @@
         ballData[n*3+2] = r * dpr;
         n++;
       };
+      const pushSeg = (x1, y1, x2, y2) => {
+        if (ns >= MAX_SEGS) return;
+        segData[ns*4]   = x1 * dpr; segData[ns*4+1] = H - y1 * dpr;
+        segData[ns*4+2] = x2 * dpr; segData[ns*4+3] = H - y2 * dpr;
+        ns++;
+      };
+      const centers = {}; // id -> drifted center px, for the hub strings
 
 
 
@@ -1872,6 +1817,7 @@
         const breathe = REDUCED ? 1 : 1 + 0.012 * Math.sin(t * 0.7 + i * 1.7);
         const [ddx, ddy] = driftXY(i, t);
         const cluster = getClusterBalls(b.id, ddx, ddy);
+        centers[b.id] = cluster[0];
         for (let j = 0; j < cluster.length; j++){
           // subs bloom: they slide out of the parent to their ring position while
           // growing, so the split reads as spheres pulling apart, not scaling in place
@@ -1879,6 +1825,8 @@
           const bx = cluster[0].x + (cluster[j].x - cluster[0].x) * grow;
           const by = cluster[0].y + (cluster[j].y - cluster[0].y) * grow;
           push(bx, by, cluster[j].r * VISUAL_SCALE * breathe * grow);
+          // thin liquid string from parent to each split-out sub
+          if (j > 0) pushSeg(cluster[0].x, cluster[0].y, bx, by);
         }
 
         // Split satellite: a droplet detaches, floats out, and re-merges.
@@ -1903,6 +1851,16 @@
         push(toPxX(d.x + ox, d.y + oy), toPxY(d.x + ox, d.y + oy), d.r * md);
       }
 
+      // hub strings: design center to every other main
+      if (showLinesEl.checked && centers["design"]){
+        const hc = centers["design"];
+        for (const b of bubbles){
+          if (!b.enabled || b.id === "design") continue;
+          const c = centers[b.id];
+          if (c) pushSeg(hc.x, hc.y, c.x, c.y);
+        }
+      }
+
       mouse.r += (mouse.tr - mouse.r) * 0.08;
       if (mouse.tx > -999 && mouse.r > 1){
         mouse.x += (mouse.tx - mouse.x) * 0.18;
@@ -1916,7 +1874,7 @@
           push(tp.x, tp.y, mouse.r * scale[s]);
         }
       }
-      return n;
+      return { n, ns };
     }
 
     // Keep the invisible DOM hit targets on top of the drifting spheres
@@ -1949,16 +1907,18 @@
     function tick(tms){
       driftT = tms * 0.001;
       applyDrift(driftT);
-      drawThreads(driftT);
       if (prog){
         const t = tms * 0.001;
         gl.viewport(0, 0, mbCanvas.width, mbCanvas.height);
         gl.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT);
         if (mbOnEl.checked){
-          const n = collectBalls(t);
+          const counts = collectBalls(t);
           gl.uniform3fv(uBallsLoc, ballData);
-          gl.uniform1i(uCountLoc, n);
+          gl.uniform1i(uCountLoc, counts.n);
+          gl.uniform4fv(uSegsLoc, segData);
+          gl.uniform1i(uSegCountLoc, counts.ns);
+          gl.uniform1f(uSegRLoc, STRING_R * minDim() * devicePixelRatio);
           gl.uniform1f(uKLoc, SMIN_K * (K_REF_MIN_DIM / minDim()) / devicePixelRatio);
           gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
         }

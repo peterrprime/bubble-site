@@ -286,6 +286,24 @@
     .tab.active{ color: rgba(0,0,0,.9); border-bottom-color: rgba(0,0,0,.85); }
 
     .paneWrap{ max-width: 980px; margin: 40px auto 96px; padding: 0 24px; box-sizing: border-box; }
+
+    /* Section titles styled like the bubbles themselves: glossy black pill,
+       white letter-spaced label — same language as the hero spheres. */
+    #portfolio h2{
+      display: inline-flex; align-items: center;
+      background:
+        radial-gradient(circle at 22% 30%, rgba(255,255,255,.5) 0%, rgba(255,255,255,.10) 12%, transparent 26%),
+        linear-gradient(180deg, #2c2d33, #0a0a0d);
+      color: rgba(255,255,255,.92);
+      border-radius: 999px;
+      padding: 12px 28px;
+      font-size: 14px; font-weight: 500;
+      letter-spacing: .18em; text-indent: .18em; text-transform: uppercase;
+      text-shadow: 0 -1px 1px rgba(0,0,0,.55), 0 1px 1px rgba(255,255,255,.10);
+      box-shadow: inset 0 -2px 6px rgba(200,210,230,.14), 0 10px 26px rgba(0,0,0,.22);
+    }
+    #portfolio h2::before{ display: none; } /* pill replaces the bead marker */
+    #portfolio h3{ letter-spacing: .06em; text-transform: uppercase; font-size: 15px; }
     .pane{ display: none; }
     .pane.active{ display: block; }
     .detail{ display: none; }
@@ -327,8 +345,12 @@
     .blobWrap{ position: relative; width: 130px; height: 130px; margin-bottom: 18px; }
     .blob{
       position: absolute; inset: 0;
-      background: radial-gradient(circle at 32% 28%, #6a6d74 0%, #26262c 42%, #0b0b0e 78%);
-      box-shadow: inset 0 -3px 6px rgba(255,255,255,.10), 0 14px 34px rgba(0,0,0,.25);
+      /* matches the WebGL spheres: hot specular dot up-left, near-black body, faint fresnel rim */
+      background:
+        radial-gradient(circle at 30% 24%, rgba(255,255,255,.95) 0%, rgba(255,255,255,.28) 7%, transparent 16%),
+        radial-gradient(circle at 70% 82%, rgba(160,170,190,.18) 0%, transparent 30%),
+        radial-gradient(circle at 34% 30%, #3c3d44 0%, #17171b 48%, #060608 85%);
+      box-shadow: inset 0 -4px 10px rgba(200,210,230,.12), 0 18px 40px rgba(0,0,0,.28);
       border-radius: 46% 54% 52% 48% / 44% 48% 52% 56%;
       animation: blobMorph 7s ease-in-out infinite;
     }
@@ -339,7 +361,9 @@
     }
     .mini{
       position: absolute; width: 20px; height: 20px; border-radius: 999px;
-      background: radial-gradient(circle at 32% 28%, #55565c 0%, #101013 70%);
+      background:
+        radial-gradient(circle at 30% 26%, rgba(255,255,255,.85) 0%, transparent 32%),
+        radial-gradient(circle at 34% 30%, #3c3d44 0%, #101013 75%);
       top: 50%; left: 50%;
       animation: absorb 3.6s ease-in infinite;
     }
@@ -420,7 +444,7 @@
         <button class="btn" id="deleteSel">Delete selected</button>
 
         <label class="toggle"><input type="checkbox" id="editMode" checked /> Edit</label>
-        <label class="toggle"><input type="checkbox" id="showLines" checked /> Lines</label>
+        <label class="toggle"><input type="checkbox" id="showLines" /> Lines</label>
         <label class="toggle"><input type="checkbox" id="autoSubs" checked /> Auto sub layout</label>
         <label class="toggle"><input type="checkbox" id="mbOn" checked /> Canvas metaballs</label>
         <label class="toggle"><input type="checkbox" id="dimOthers" checked /> Dim others when expanded</label>
@@ -592,7 +616,7 @@
           </p>
           <div class="cards">
             <a class="card" href="#web/this-site">
-              <div class="thumb"><img src="assets/projects/metaballs.png" alt="Bubble Layout Editor — the metaball navigation of this site" loading="lazy"></div>
+              <div class="thumb"><img src="assets/projects/site-hero.jpg" alt="Bubble Layout Editor — the metaball navigation of this site" loading="lazy"></div>
               <div class="cardTitle">This Site — Bubble Layout Editor</div>
               <div class="cardSub">A metaball node graph as navigation. No frameworks, no build step.</div>
             </a>
@@ -616,7 +640,7 @@
             Source: <a href="https://github.com/peterrprime/bubble-site">github.com/peterrprime/bubble-site</a>
           </p>
           <div class="gallery">
-            <figure><img src="assets/projects/metaballs.png" alt="The metaball field rendering" loading="lazy">
+            <figure><img src="assets/projects/site-hero.jpg" alt="The metaball field rendering" loading="lazy">
               <figcaption>The WebGL2 metaball field — glossy spheres joined by liquid necks, re-solving every frame.</figcaption></figure>
           </div>
         </article>
@@ -650,7 +674,7 @@
               <div class="cardSub">Python inside Grasshopper — spreadsheets in, buildings out.</div>
             </a>
             <a class="card" href="#web/this-site">
-              <div class="thumb"><img src="assets/projects/metaballs.png" alt="Bubble Layout Editor" loading="lazy"></div>
+              <div class="thumb"><img src="assets/projects/site-hero.jpg" alt="Bubble Layout Editor" loading="lazy"></div>
               <div class="cardTitle">Bubble Layout Editor</div>
               <div class="cardSub">The vanilla-JS/WebGL2 tool running this site's navigation.</div>
             </a>
@@ -928,9 +952,9 @@
         if (!autoSubsEl.checked && st.x != null && st.y != null) continue;
 
         // ring in px (radii are minDim-relative, coords are width/height-relative).
-        // 1.3: subs float clearly apart from the parent; a thin bead-string
-        // (pushString in collectBalls) ties them back instead of a fat neck.
-        const ring = (m.r + st.r) * 1.3 * minDim();
+        // 1.15: subs sit just apart from the parent; a thin liquid strand
+        // (pushString in collectBalls) bridges the small gap.
+        const ring = (m.r + st.r) * 1.15 * minDim();
         const rw = portrait() ? window.innerHeight : window.innerWidth;
         const rh = portrait() ? window.innerWidth : window.innerHeight;
         const a = (arc >= 2 * Math.PI)
@@ -995,11 +1019,7 @@
         const shouldDim = dimOthersEl.checked && expandedMainId && b.id !== expandedMainId;
         el.classList.toggle("dim", !!shouldDim);
       }
-      // dim the hub strings when a cluster is expanded, but not the cluster's own
-      const dimLines = dimOthersEl.checked && expandedMainId;
-      for (const ln of svg.querySelectorAll(".line")){
-        ln.style.opacity = (dimLines && !ln.dataset.sub) ? "0.35" : "1";
-      }
+      svg.style.opacity = (dimOthersEl.checked && expandedMainId) ? "0.35" : "1";
     }
 
     // =========================
@@ -1028,27 +1048,7 @@
         line.setAttribute("x1", cx); line.setAttribute("y1", cy);
         line.setAttribute("x2", x);  line.setAttribute("y2", y);
         line.setAttribute("class", "line");
-        line.dataset.from = center.id;
-        line.dataset.to = b.id;
         svg.appendChild(line);
-      }
-
-      // Strings from an expanded main to each of its split-out subs
-      const m = expandedMainId && getMain(expandedMainId);
-      if (m && m.enabled && subState[m.id]){
-        const px = toPxX(m.x, m.y), py = toPxY(m.x, m.y);
-        for (const c of (m.children || [])){
-          if (c.enabled === false) continue;
-          const st = subState[m.id][c.id];
-          if (!st || st.x == null) continue;
-          const line = document.createElementNS("http://www.w3.org/2000/svg","line");
-          line.setAttribute("x1", px); line.setAttribute("y1", py);
-          line.setAttribute("x2", toPxX(st.x, st.y)); line.setAttribute("y2", toPxY(st.x, st.y));
-          line.setAttribute("class", "line");
-          line.dataset.from = m.id;
-          line.dataset.sub = c.id;
-          svg.appendChild(line);
-        }
       }
     }
 
@@ -1640,9 +1640,10 @@
       return balls;
     }
 
-    const MAX_BALLS = 40;
+    const MAX_BALLS = 64;      // headroom for the bead-strings tying subs to parents
     const VISUAL_SCALE = 0.92; // spheres render slightly smaller than their hit circles; big enough that neighbors neck into each other
-    const SMIN_K = 0.05;       // ponytail: neck-thickness knob (1/css-px @ minDim 1080); raise for tighter necks
+    const SMIN_K = 0.06;       // ponytail: neck-thickness knob (1/css-px @ minDim 1080); raise for tighter necks
+    const STRING_R = 0.0045;   // bead radius of the sub connection strands (minDim-relative)
     // Necks form when the surface gap < 2*ln(2)/K (~40 css px at 1080p). The main
     // constellation is tuned to rest at ~22-24px gaps so thin necks join it up.
     const K_REF_MIN_DIM = 1080; // K scales with minDim so necks survive any screen size
@@ -1793,6 +1794,21 @@
         n++;
       };
 
+      // Super-thin liquid strand: a chain of tiny beads from surface A to
+      // surface B; the smooth-min melts them into one continuous string.
+      const pushString = (ax, ay, ar, bx, by, br) => {
+        const dx = bx - ax, dy = by - ay;
+        const dist = Math.hypot(dx, dy);
+        const r = STRING_R * md;
+        if (dist < 1 || dist <= ar + br) return; // overlapping — no strand needed
+        const t0 = (ar - r) / dist, t1 = 1 - (br - r) / dist;
+        const steps = Math.min(10, Math.max(2, Math.ceil((dist - ar - br + 2 * r) / (r * 1.5))));
+        for (let s = 0; s <= steps; s++){
+          const k = t0 + (t1 - t0) * (s / steps);
+          push(ax + dx * k, ay + dy * k, r);
+        }
+      };
+
 
       if (expandedMainId !== lastExpanded){ lastExpanded = expandedMainId; expandT = t; }
       const bloom = REDUCED ? 1 : Math.min(1, (t - expandT) / 0.55);
@@ -1810,7 +1826,10 @@
           const grow = (j > 0 && b.id === expandedMainId) ? ease : 1;
           const bx = cluster[0].x + (cluster[j].x - cluster[0].x) * grow;
           const by = cluster[0].y + (cluster[j].y - cluster[0].y) * grow;
-          push(bx, by, cluster[j].r * VISUAL_SCALE * breathe * grow);
+          const br = cluster[j].r * VISUAL_SCALE * breathe * grow;
+          push(bx, by, br);
+          // thin strand tying each split-out sub back to its parent
+          if (j > 0) pushString(cluster[0].x, cluster[0].y, cluster[0].r * VISUAL_SCALE, bx, by, br);
         }
 
         // Split satellite: a droplet detaches, floats out, and re-merges.
@@ -1856,11 +1875,9 @@
     function applyDrift(t){
       if (DEV_MODE || REDUCED) return;
       let i = 0;
-      const dpos = {}; // id -> drifted normalized [x, y], for the strings below
       for (const b of bubbles){
         if (!b.enabled) continue;
         const [dx, dy] = driftXY(i, t);
-        dpos[b.id] = [b.x + dx, b.y + dy];
         const el = domByKey.get(keyMain(b.id));
         if (el){
           el.style.left = `${toPxX(b.x + dx, b.y + dy)}px`;
@@ -1877,26 +1894,6 @@
           }
         }
         i++;
-      }
-      // keep the connection strings attached to the drifting spheres
-      for (const ln of svg.querySelectorAll(".line")){
-        const a = dpos[ln.dataset.from];
-        if (!a) continue;
-        ln.setAttribute("x1", toPxX(a[0], a[1])); ln.setAttribute("y1", toPxY(a[0], a[1]));
-        if (ln.dataset.sub){
-          // sub strings: both ends ride the parent's drift
-          const st = subState[ln.dataset.from]?.[ln.dataset.sub];
-          const off = a[0] - getMain(ln.dataset.from).x, offY = a[1] - getMain(ln.dataset.from).y;
-          if (st && st.x != null){
-            ln.setAttribute("x2", toPxX(st.x + off, st.y + offY));
-            ln.setAttribute("y2", toPxY(st.x + off, st.y + offY));
-          }
-        } else {
-          const c = dpos[ln.dataset.to];
-          if (!c) continue;
-          ln.setAttribute("x2", toPxX(c[0], c[1]));
-          ln.setAttribute("y2", toPxY(c[0], c[1]));
-        }
       }
     }
 
